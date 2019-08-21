@@ -1,6 +1,6 @@
 import actioneer
 
-handler = actioneer.Performer([, 1, True]) # inits the command handler, the argument is preset contexts that will be passed to the command
+handler = actioneer.Performer([1, True]) # inits the command handler, the argument is preset contexts that will be passed to the command
 # you can subclass Perfomer and overwride the "split_args", "get_options" and "get_flags"
 
 def echo(*msg, message: str, flags: actioneer.Flags, options: actioneer.Options): # kwargs will be treated as contexts that will be passed to the command, this system used the annotations to find what to set as what
