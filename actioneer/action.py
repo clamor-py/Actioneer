@@ -10,11 +10,12 @@ class Command:
                  options: Dict[str, Callable] = {},
                  options_aliases: Dict[str, str] = {}, flags: List[str] = [],
                  flags_aliases: Dict[str, str] = {}, performer=None):
+
         self.subs = {}
         self.name = func.__name__
         self.func = func
         self.aliases = aliases
-        self.casts = [self.make_cast(param)
+        self.casts = [self.get_cast(param)
                       for param in signature(func).parameters.values()
                       if param.kind == Parameter.VAR_POSITIONAL]
         self.options = options
@@ -29,8 +30,11 @@ class Command:
         bool: bool_from_str
     }
 
-    def make_cast(self, param):
+    def get_cast(self, param):
         return self.overrides.get(param, param)
+
+    def make_cast(self, args):
+        return [cast(arg) for cast, arg in zip(args, self.casts)]
 
     def invoke(self, args: List[str] = [], ctx: List[Any] = []):
         ctx = {type(a): a for a in ctx}
@@ -43,6 +47,7 @@ class Command:
                            if v.kind == Parameter.KEYWORD_ONLY}
 
             ctxs = {name: ctx[value] for name, value in name_annots.items()}
+            args = 
             self.func(*args, **ctxs)
         except Exception as e:
             if self.error_handler:
