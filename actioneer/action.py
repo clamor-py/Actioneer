@@ -1,4 +1,4 @@
-from typing import Callable, Any, List, Dict
+from typing import Callable, Any, List, Dict, Union
 from inspect import Parameter, signature
 from .utils import identity, bool_from_str
 from .argument import Argument
@@ -27,7 +27,8 @@ class Command:
 
     overrides = {
         Parameter.empty: identity,
-        bool: bool_from_str
+        bool: bool_from_str,
+        Union: union_converter
     }
 
     def get_cast(self, param):
@@ -47,7 +48,7 @@ class Command:
                            if v.kind == Parameter.KEYWORD_ONLY}
 
             ctxs = {name: ctx[value] for name, value in name_annots.items()}
-            args = 
+            args = self.make_cast(args)
             self.func(*args, **ctxs)
         except Exception as e:
             if self.error_handler:

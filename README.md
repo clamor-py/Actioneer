@@ -18,7 +18,5 @@ but for now clone the repo
 
 #### TODO
  [x] flags
- 
  [x] options
- 
  [] intergration with typing to allow  to use them for typhints, ie `Optinal`
