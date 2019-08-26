@@ -13,11 +13,13 @@ class Command:
 
         self.subs = {}
         self.name = func.__name__
+        self.description = func.__doc__
         self.func = func
         self.aliases = aliases
-        self.casts = [self.get_cast(param)
+        self.casts = [self.get_cast(param.annotation)
                       for param in signature(func).parameters.values()
-                      if param.kind == Parameter.VAR_POSITIONAL]
+                      if param.kind in (Parameter.POSITIONAL_OR_KEYWORD,
+                                        Parameter.VAR_POSITIONAL)]
         self.options = options
         self.options_aliases = options_aliases
         self.flags = flags
@@ -27,21 +29,21 @@ class Command:
 
     overrides = {
         Parameter.empty: identity,
-        bool: bool_from_str,
-        Union: union_converter
+        bool: bool_from_str
     }
 
     def get_cast(self, param):
         return self.overrides.get(param, param)
 
     def make_cast(self, args):
-        return [cast(arg) for cast, arg in zip(args, self.casts)]
+        return [cast(arg) for arg, cast in zip(args, self.casts)]
 
     def invoke(self, args: List[str] = [], ctx: List[Any] = []):
         ctx = {type(a): a for a in ctx}
-        sub = self.subs.get(args[0])
-        if sub:
-            return sub.invoke(args[1:], ctx)
+        if len(args) >= 1:
+            sub = self.subs.get(args[0])
+            if sub:
+                return sub.invoke(args[1:], ctx)
         try:
             name_annots = {name: v.annotation for name, v in
                            signature(self.func).parameters.items()

@@ -11,12 +11,12 @@ chunk = re.compile(r"\S+")
 
 class Performer:
     def __init__(self, ctx: List[Any] = []):
-        self.commands = []
+        self.commands = {}
         self.lookup = {}
         self.ctx = ctx
 
     def register(self, cmd):
-        self.commands.append(cmd)
+        self.commands[cmd.func.__name__] = cmd
         self.lookup[cmd.name] = cmd
         for alias in cmd.aliases:
             self.lookup[alias] = cmd
