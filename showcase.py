@@ -22,12 +22,11 @@ echo = actioneer.Command(echo, flags=["test"], options={"channel": int}, perform
 handler.register(echo)  # adds it to the command handler
 
 
-# echo.invoke(["hello", "hello", "world"], ["bruh (the 'message', kwarg", actioneer.Flags({"test": True}), actioneer.Options({"channel": 123})]) # cmd.invoke doesnt handle arg passing
+echo.invoke(["hello", "hello", "world"], ["bruh (the 'message', kwarg", actioneer.Flags({"test": True}), actioneer.Options({"channel": 123})]) # cmd.invoke doesnt handle arg passing
 handler.run("echo hello world -test --channel 123", ["bruh"])  # handler.run handles arg splitting and options and flags
 #            ^ (1) ^ (2)       ^ (3)   ^ (4)           ^ (5)
 # 1 - command name
 # 2 - command args
 # 3 - flag
 # 4 - option
-# 5 - extra command context's that can be set when being invoked, ie channel,
-#     message ect
+# 5 - extra command context's that can be set when being invoked, ie channel, message ect
