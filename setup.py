@@ -1,16 +1,22 @@
 from distutils.core import setup
 
+with open('README.md') as f:
+    long_description = f.read()
+
+
 setup(
-    name = 'actioneer',
+    name = 'Actioneer',
     packages = ['actioneer'],
     version = '0.5',
     license='MIT',
     description = 'Actioneer is a multi-purpose command handler that can be used on its own or embedded in other projects',
+    long_description = long_description,
+    long_description_content_type = 'text/markdown',
     author = 'Zomatree',
     url = 'https://github.com/clamor-py/Actioneer/',
     download_url = 'https://github.com/clamor-py/Actioneer/archive/v0.5.tar.gz',
     keywords = ['commands', 'handler'],
-    classifiers=[
+    classifiers = [
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Build Tools',
