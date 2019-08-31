@@ -14,7 +14,7 @@ setup(
     long_description_content_type = 'text/markdown',
     author = 'Zomatree',
     url = 'https://github.com/clamor-py/Actioneer/',
-    download_url = 'https://github.com/clamor-py/Actioneer/archive/v0.5.tar.gz',
+    download_url = 'https://github.com/clamor-py/Actioneer/archive/v0.5.0.tar.gz',
     keywords = ['commands', 'handler'],
     classifiers = [
         'Development Status :: 3 - Alpha',
