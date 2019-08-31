@@ -1,4 +1,4 @@
-from typing import Callable, Any, List, Dict, Union
+from typing import Callable, Any, List, Dict
 from inspect import Parameter, signature
 from .utils import identity, bool_from_str
 from .argument import Argument

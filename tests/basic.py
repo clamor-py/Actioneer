@@ -4,11 +4,10 @@ import actioneer
 handler = actioneer.Performer()
 
 
-def ping():
-    print("pong!")
+@handler.register
+@actioneer.Command
+def ping(arg1):
+    print("pong!", arg1)
 
 
-ping = actioneer.Command("ping", ["p"])
-handler.register(ping)
-
-handler.run("ping")
+handler.run("ping hello")
