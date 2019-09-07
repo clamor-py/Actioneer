@@ -2,18 +2,23 @@ from typing import List, Any, Dict, Callable
 from .errors import NoClosingQuote
 from .flags import Flags
 from .options import Options
+from .utils import get_ctxs
 import re
-import inspect
 import traceback
+from inspect import isawaitable
+import asyncio
+
+
 quoteRe = re.compile(r"[\"']")
 chunk = re.compile(r"\S+")
 
 
 class Performer:
-    def __init__(self, ctx: List[Any] = []):
+    def __init__(self, ctx: List[Any] = [], *, loop=None):
         self.commands = {}
         self.lookup = {}
         self.ctx = ctx
+        self.loop = loop
 
     def register(self, cmd):
         self.commands[cmd.func.__name__] = cmd
@@ -33,12 +38,26 @@ class Performer:
                                              cmd.flags_aliases)
                 flags = Flags(flags)
                 options = Options(options)
-                return cmd.invoke(args[1:], ctx + self.ctx + [flags, options])
-            except Exception as e:
-                if cmd.error_handler:
-                    cmd.run_fail(e, ctx)
+                if self.loop:
+                    coro = cmd.async_invoke(args[1:], ctx + self.ctx +
+                                            [flags, options])
+                    return self.loop.run_until_complete(coro)
                 else:
-                    self.run_fail(e, ctx)
+                    return cmd.invoke(args[1:], ctx + self.ctx +
+                                      [flags, options])
+            except Exception as e:
+                if self.loop:
+                    if cmd.error_handler:
+                        self.loop.run_until_complete(cmd.async_run_fail(e,
+                                                                        ctx))
+                    else:
+                        self.loop.run_until_complete(self.async_run_fail(e,
+                                                                         ctx))
+                else:
+                    if cmd.error_handler:
+                        cmd.run_fail(e, ctx)
+                    else:
+                        self.run_fail(e, ctx)
 
     def error(self, func):
         self.fail = func
@@ -46,13 +65,16 @@ class Performer:
     def fail(self, e):
         traceback.print_exc()
 
-    def run_fail(self, e, ctx: Dict[Any, Any] = {}):
-        name_annots = {name: v.annotation for name, v in
-                       inspect.signature(self.fail).parameters.items()
-                       if v.kind == inspect.Parameter.KEYWORD_ONLY}
-
-        ctxs = {name: ctx[value] for name, value in name_annots.items()}
+    def run_fail(self, e, ctx: List[Any] = []):
+        ctxs = get_ctxs(self.fail, ctx)
         self.fail(e, **ctxs)
+
+    async def async_run_fail(self, e, ctx: List[Any] = []):
+        ctxs = get_ctxs(self.fail, ctx)
+        if isawaitable(self.fail):
+            await self.fail(e, **ctxs)
+        else:
+            self.fail(e, **ctxs)
 
     def split_args(self, s: str) -> List[str]:
         """Will split the raw input into the arguments"""

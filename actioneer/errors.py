@@ -14,3 +14,7 @@ class NoCommandFound(Exception):
 class AlreadyAActionWithThatName(Exception):
     """When A Action is trying to be created with a name of a Action
        with the same name"""
+
+
+class CheckFailed(Exception):
+    """Raised when a check for a command failed"""

@@ -10,8 +10,6 @@ setup(
     version = '0.5',
     license='MIT',
     description = 'Actioneer is a multi-purpose command handler that can be used on its own or embedded in other projects',
-    long_description = long_description,
-    long_description_content_type = 'text/markdown',
     author = 'Zomatree',
     url = 'https://github.com/clamor-py/Actioneer/',
     download_url = 'https://github.com/clamor-py/Actioneer/archive/v0.5.0.tar.gz',

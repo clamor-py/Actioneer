@@ -1,3 +1,6 @@
+from inspect import signature, Parameter
+from typing import List, Any
+
 
 def identity(value):
     return value
@@ -17,3 +20,14 @@ def bool_from_str(inp):
         return True
     else:
         raise Exception("TODO")  # TODO
+
+
+def get_ctxs(func, ctx: List[Any] = []):
+    ctx = {type(a): a for a in ctx}
+
+    name_annots = {name: v.annotation for name, v in
+                   signature(func).parameters.items()
+                   if v.kind == Parameter.KEYWORD_ONLY}
+
+    ctxs = {name: ctx[value] for name, value in name_annots.items()}
+    return ctxs
