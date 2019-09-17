@@ -5,11 +5,11 @@ from .argument import Argument
 from .errors import AlreadyAActionWithThatName, CheckFailed
 
 
-class Command:
+class Action:
     def __init__(self, func, aliases: List[str] = [], *,
                  options: Dict[str, Callable] = {},
                  options_aliases: Dict[str, str] = {}, flags: List[str] = [],
-                 flags_aliases: Dict[str, str] = {}, performer=None,
+                 flags_aliases: Dict[str, str] = {},
                  checks: List[Callable] = []):
 
         self.subs = {}
@@ -26,7 +26,7 @@ class Command:
         self.flags = flags
         self.flags_aliases = flags_aliases
         self.error_handler = None
-        self.performer = performer
+        self.performer = None
         self.checks = checks
 
     overrides = {
@@ -96,15 +96,13 @@ class Command:
             elif self.performer:
                 self.performer.run_fail(e, ctxs)
 
-    def sub_command(self, aliases: list = []):
-        def wrapper(func):
-            if func.__name__ in self.subs.keys():
-                raise AlreadyAActionWithThatName(func.__name__, self.name)
-            for name in aliases + [func.__name__]:
-                sub = Command(func)
-                self.subs[name] = sub
-            return sub
-        return wrapper
+    def subcommand(self, func, name=None, *, aliases: list = []):
+        if func.__name__ in self.subs.keys():
+            raise AlreadyAActionWithThatName(func.__name__, self.name)
+        for name in aliases + [name or func.__name__]:
+            sub = self.__class__(func)
+            self.subs[name] = sub
+        return sub
 
     @property
     def parameters(self):

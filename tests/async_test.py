@@ -6,7 +6,7 @@ handler = actioneer.Performer(loop=asyncio.get_event_loop())
 
 
 @handler.register
-@actioneer.Command
+@actioneer.Action
 async def ping(arg1):
     print("pong!", arg1)
 

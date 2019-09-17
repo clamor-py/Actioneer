@@ -31,3 +31,9 @@ def get_ctxs(func, ctx: List[Any] = []):
 
     ctxs = {name: ctx[value] for name, value in name_annots.items()}
     return ctxs
+
+class Flags(dict):
+    """Flag class"""
+
+class Options(dict):
+    """Options class"""

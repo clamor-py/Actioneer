@@ -27,11 +27,11 @@ def help(command=None):
     print("\n".join(out))
 
 
-ping = actioneer.Command(ping, ["p"])
-add = actioneer.Command(add, ["a"])
-help = actioneer.Command(help)
+ping = actioneer.Action(ping, ["p"])
+add = actioneer.Action(add, ["a"])
+help = actioneer.Action(help)
 handler.register(add)
 handler.register(ping)
 handler.register(help)
 
-handler.run("help add")
+handler.run("help")

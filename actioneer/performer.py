@@ -1,12 +1,9 @@
 from typing import List, Any, Dict, Callable
 from .errors import NoClosingQuote
-from .flags import Flags
-from .options import Options
-from .utils import get_ctxs
+from .utils import get_ctxs, Flags, Options
 import re
 import traceback
 from inspect import isawaitable
-import asyncio
 
 
 quoteRe = re.compile(r"[\"']")
@@ -23,6 +20,7 @@ class Performer:
     def register(self, cmd):
         self.commands[cmd.func.__name__] = cmd
         self.lookup[cmd.name] = cmd
+        cmd.performer = self
         for alias in cmd.aliases:
             self.lookup[alias] = cmd
         return cmd

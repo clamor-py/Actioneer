@@ -15,7 +15,7 @@ def check(*, message: str):
     return message == "bruh"
 
 
-test = actioneer.Command(test, ["t"], checks=[check])
+test = actioneer.Action(test, ["t"], checks=[check])
 handler.register(test)
 
 handler.run("test 1 2")

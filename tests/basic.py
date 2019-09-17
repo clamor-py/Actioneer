@@ -5,7 +5,7 @@ handler = actioneer.Performer()
 
 
 @handler.register
-@actioneer.Command
+@actioneer.Action
 def ping(arg1):
     print("pong!", arg1)
 
