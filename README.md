@@ -5,14 +5,16 @@ Actioneer is a multi-purpose command handler that can be used on its own or embe
 a example of the lib being used can be seen in "showcase.py"
 
 ## Features
- - very customziable
- - easy to build on
- - has flags and options
- - has subcommands and type casting
+ - Customziable
+ - Easy to build on
+ - Flags and options
+ - Subcommands and type casting
+ - Async support (optinal)
+ - Command checks
 
 
 ### Installation
-Actioneer will be on PyPi so installation will be alot easier
+Actioneer will be on PyPi so installation will be alot easier (not on it yet)
 but for now clone the repo
 
 
