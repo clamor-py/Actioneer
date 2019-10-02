@@ -39,17 +39,17 @@ class Performer:
                 if self.loop:
                     coro = cmd.async_invoke(args[1:], ctx + self.ctx +
                                             [flags, options])
-                    return self.loop.run_until_complete(coro)
+                    return self.loop.create_task(coro)
                 else:
                     return cmd.invoke(args[1:], ctx + self.ctx +
                                       [flags, options])
             except Exception as e:
                 if self.loop:
                     if cmd.error_handler:
-                        self.loop.run_until_complete(cmd.async_run_fail(e,
+                        self.loop.create_task(cmd.async_run_fail(e,
                                                                         ctx))
                     else:
-                        self.loop.run_until_complete(self.async_run_fail(e,
+                        self.loop.create_task(self.async_run_fail(e,
                                                                          ctx))
                 else:
                     if cmd.error_handler:

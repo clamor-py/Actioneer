@@ -1,5 +1,5 @@
-from typing import Callable, Any, List, Dict
-from inspect import Parameter, signature, isawaitable
+from typing import Callable, Any, List, Dict, Union
+from inspect import Parameter, signature, iscoroutinefunction
 from .utils import identity, bool_from_str, get_ctxs
 from .argument import Argument
 from .errors import AlreadyAActionWithThatName, CheckFailed
@@ -7,13 +7,14 @@ from .errors import AlreadyAActionWithThatName, CheckFailed
 
 class Action:
     def __init__(self, func, aliases: List[str] = [], *,
+                 name: str = None, flags: List[str] = [],
                  options: Dict[str, Callable] = {},
-                 options_aliases: Dict[str, str] = {}, flags: List[str] = [],
+                 options_aliases: Dict[str, str] = {},
                  flags_aliases: Dict[str, str] = {},
                  checks: List[Callable] = []):
 
         self.subs = {}
-        self.name = func.__name__
+        self.name = name or func.__name__
         self.description = func.__doc__
         self.func = func
         self.aliases = aliases
@@ -45,9 +46,9 @@ class Action:
     async def async_can_run(self, ctx: List[Any] = []):
         for check in self.checks:
             ctxs = get_ctxs(check, ctx)
-            if isawaitable(check) and await check(ctxs):
+            if iscoroutinefunction(check) and await check(**ctxs):
                 pass
-            elif check(ctxs):
+            elif check(**ctxs):
                 pass
             else:
                 raise CheckFailed(f"Check {check.__name__} Failed")
@@ -55,13 +56,42 @@ class Action:
     def get_cast(self, param):
         return self.overrides.get(param, param)
 
-    def make_cast(self, args):
-        return [(cast(arg)) if isawaitable(cast) else cast(arg)
-                for arg, cast in zip(args, self.casts)]
+    def make_cast(self, args, ctx):
+        out = []
+        for arg, cast in zip(args, self.casts):
+            if getattr(cast, "__origin__", "") is Union:
+                for union_cast in cast.__args__:
+                    try:
+                        
+                        out.append(union_cast(arg, **get_ctxs(union_cast, ctx)))
+                        break
+                    except ValueError:
+                        continue
+            out.append(cast(arg))
 
-    async def async_make_cast(self, args):
-        return [(await cast(arg)) if isawaitable(cast) else cast(arg)
-                for arg, cast in zip(args, self.casts)]
+        return out
+
+    async def async_make_cast(self, args, ctx):
+        out = []
+        for arg, cast in zip(args, self.casts):
+            if getattr(cast, "__origin__", "") is Union:
+                for union_cast in cast.__args__:
+                    try:
+                        if iscoroutinefunction(union_cast):
+                            out.append(await union_cast(arg, **get_ctxs(union_cast, ctx)))
+                            break
+                        else:
+                            out.append(union_cast(arg, **get_ctxs(union_cast, ctx)))
+                            break
+                    except ValueError:
+                        continue
+                continue
+            if iscoroutinefunction(cast):
+                out.append(await cast(arg, **get_ctxs(cast, ctx)))
+            else:
+                out.append(cast(arg, **get_ctxs(cast, ctx)))
+
+        return out
 
     async def async_invoke(self, args: List[str] = [], ctxs: List[Any] = []):
         if len(args) >= 1:
@@ -71,10 +101,9 @@ class Action:
         try:
             await self.async_can_run(ctxs)
             ctx = get_ctxs(self.func, ctxs)
-            args = await self.async_make_cast(args)
+            args = await self.async_make_cast(args, ctxs)
             await self.func(*args, **ctx)
         except Exception as e:
-            raise e
             if self.error_handler:
                 await self.async_run_fail(e, ctxs)
             elif self.performer:
@@ -88,7 +117,7 @@ class Action:
         try:
             self.can_run(ctxs)
             ctx = get_ctxs(self.func, ctxs)
-            args = self.make_cast(args)
+            args = self.make_cast(args, ctxs)
             self.func(*args, **ctx)
         except Exception as e:
             if self.error_handler:
@@ -115,7 +144,7 @@ class Action:
 
     async def async_run_fail(self, e, ctx: List[Any] = []):
         ctxs = get_ctxs(self.error_handler, ctx)
-        if isawaitable(self.error_handler):
+        if iscoroutinefunction(self.error_handler):
             await self.error_handler(e, **ctxs)
         else:
             self.error_handler(e, **ctxs)
