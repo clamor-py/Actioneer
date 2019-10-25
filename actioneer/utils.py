@@ -24,9 +24,12 @@ def bool_from_str(inp):
 
 def get_ctxs(func, ctx: List[Any] = []):
     out = {}
-    name_annots = {name: v.annotation for name, v in
-                   signature(func).parameters.items()
-                   if v.kind == Parameter.KEYWORD_ONLY}
+    try:
+        name_annots = {name: v.annotation for name, v in
+                    signature(func).parameters.items()
+                    if v.kind == Parameter.KEYWORD_ONLY}
+    except:
+        return {}
     for name, annotation in name_annots.items():
         if getattr(annotation, "__origin__", "") is Union:
             done = False

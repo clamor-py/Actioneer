@@ -1,6 +1,7 @@
-from typing import List, Any, Dict, Callable
+from typing import List, Any, Dict, Callable, Tuple
 from .errors import NoClosingQuote
 from .utils import get_ctxs, Flags, Options
+from .action import Action
 import re
 import traceback
 from inspect import isawaitable
@@ -11,10 +12,10 @@ chunk = re.compile(r"\S+")
 
 
 class Performer:
-    def __init__(self, ctx: List[Any] = [], *, loop=None):
+    def __init__(self, ctx: List[Any] = (), *, loop=None):
         self.commands = {}
         self.lookup = {}
-        self.ctx = ctx
+        self.ctx = ctx + [self]
         self.loop = loop
 
     def register(self, cmd):
@@ -25,32 +26,30 @@ class Performer:
             self.lookup[alias] = cmd
         return cmd
 
-    def run(self, args, ctx: List[Any] = []):
+    def run(self, args, ctx: List[Any] = ()):
         cmd = self.lookup.get(args.split(" ")[0])
         if cmd:
             try:
                 args = self.split_args(args)
                 options, args = self.get_options(args, cmd.options,
-                                                 cmd.options_aliases)
+                                                 cmd.option_aliases)
                 flags, args = self.get_flags(args, cmd.flags,
-                                             cmd.flags_aliases)
+                                             cmd.flag_aliases)
                 flags = Flags(flags)
                 options = Options(options)
                 if self.loop:
                     coro = cmd.async_invoke(args[1:], ctx + self.ctx +
-                                            [flags, options])
+                                            (flags, options))
                     return self.loop.create_task(coro)
                 else:
                     return cmd.invoke(args[1:], ctx + self.ctx +
-                                      [flags, options])
+                                      (flags, options))
             except Exception as e:
                 if self.loop:
                     if cmd.error_handler:
-                        self.loop.create_task(cmd.async_run_fail(e,
-                                                                        ctx))
+                        self.loop.create_task(cmd.async_run_fail(e, ctx))
                     else:
-                        self.loop.create_task(self.async_run_fail(e,
-                                                                         ctx))
+                        self.loop.create_task(self.async_run_fail(e, ctx))
                 else:
                     if cmd.error_handler:
                         cmd.run_fail(e, ctx)
@@ -96,28 +95,28 @@ class Performer:
         return args
 
     def get_options(self, inp: List[str], options: Dict[str, Callable],
-                    aliases: Dict[str, str]) -> Dict[str, Any]:
+                    aliases: Dict[str, str]) -> Tuple[Dict[str, bool], List[str]]:
         """Will get options, the return will be converted as setup"""
-        out = {}
+        options_out = {}
         for i, arg in enumerate(inp):
             name = arg[2:]
             if not arg.startswith("-"):
                 continue
             try:
                 if arg.startswith("-") and name in options.keys():
-                    out[name] = options[name](inp[i+1])
+                    options_out[name] = options[name](inp[i+1])
                     del inp[i]
                     del inp[i]
                 elif arg.startswith("-") and name in aliases.keys():
-                    out[aliases[name]] = options[name](inp[i+1])
+                    options_out[aliases[name]] = options[name](inp[i+1])
                     del inp[i]
                     del inp[i]
             except Exception as e:
                 raise e
-        return out, inp
+        return options_out, inp
 
     def get_flags(self, inp: List[str], flags: List[str],
-                  aliases: Dict[str, str]) -> Dict[str, bool]:
+                  aliases: Dict[str, str]) -> Tuple[Dict[str, bool], List[str]]:
         """Will get all flags"""
         out = {name: False for name in flags}
 

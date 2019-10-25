@@ -1,8 +1,7 @@
-
 class Argument:
-    def __init__(self, name, hint):
+    def __init__(self, name, typehint):
         self.name = name
-        self.hint = hint
+        self.typehint = typehint
 
     def __repr__(self):
-        return f"<Argument name='{self.name}' typehint='{self.hint}'>"
+        return f"<Argument name='{self.name}' typehint='{self.typehint}'>"
