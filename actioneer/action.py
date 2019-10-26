@@ -25,23 +25,20 @@ class Action:
                  option_aliases: Dict[str, str] = frozenset(),
                  flag_aliases: Dict[str, str] = frozenset(),
                  checks: List[Callable] = ()):
+        if isclass(func):
+            self.subs = {k: (Action(v) if not isinstance(v, Action) else v)
+                         for k, v in vars(func).items() if not k.startswith("__")}
+            self.func = copy(func.__call__)
+        else:
+            self.subs = {}
+            self.func = func
 
         self.casts = [self.get_cast(param.annotation)
                       for param in signature(self.func).parameters.values()
                       if param.kind in [Parameter.POSITIONAL_OR_KEYWORD,
                                         Parameter.VAR_POSITIONAL]]
 
-        if isclass(func):
-            self.subs = {k: (self.__class__(v) if not isinstance(v, self.__class__) else v)
-                         for k, v in vars(func).items()}
-            self.func = copy(func.__call__)
-            self.casts = self.casts[1:]
-        else:
-            self.subs = {}
-            self.func = func
-
         self.name = name or func.__name__
-        self.func.__name__ = self.name
         self.description = func.__doc__
         self.aliases = aliases
 

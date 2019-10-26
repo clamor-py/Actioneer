@@ -12,21 +12,21 @@ chunk = re.compile(r"\S+")
 
 
 class Performer:
-    def __init__(self, ctx: List[Any] = (), *, loop=None):
+    def __init__(self, ctx: Tuple[Any, ...] = (), *, loop=None):
         self.commands = {}
         self.lookup = {}
-        self.ctx = ctx + [self]
+        self.ctx = ctx + (self,)
         self.loop = loop
 
     def register(self, cmd):
-        self.commands[cmd.func.__name__] = cmd
+        self.commands[cmd.name] = cmd
         self.lookup[cmd.name] = cmd
         cmd.performer = self
         for alias in cmd.aliases:
             self.lookup[alias] = cmd
         return cmd
 
-    def run(self, args, ctx: List[Any] = ()):
+    def run(self, args, ctx: Tuple[Any] = ()):
         cmd = self.lookup.get(args.split(" ")[0])
         if cmd:
             try:
@@ -60,13 +60,13 @@ class Performer:
         self.fail = func
 
     def fail(self, e):
-        traceback.print_exc()
+        traceback.print_exception(type(e), e, e.__traceback__)
 
-    def run_fail(self, e, ctx: List[Any] = []):
+    def run_fail(self, e, ctx: Tuple[Any] = ()):
         ctxs = get_ctxs(self.fail, ctx)
         self.fail(e, **ctxs)
 
-    async def async_run_fail(self, e, ctx: List[Any] = []):
+    async def async_run_fail(self, e, ctx: List[Any] = ()):
         ctxs = get_ctxs(self.fail, ctx)
         if isawaitable(self.fail):
             await self.fail(e, **ctxs)
