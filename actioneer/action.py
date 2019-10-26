@@ -19,12 +19,12 @@ class Action:
     __slots__ = ["casts", "subs", "func", "description", "aliases", "options", "option_aliases", "flags", "flag_aliases",
                  "error_handler", "performer", "checks", "name"]
 
-    def __init__(self, func, aliases: List[str] = (), *,
-                 name: str = None, flags: List[str] = (),
+    def __init__(self, func, aliases: Tuple[str] = (), *,
+                 name: str = None, flags: Tuple[str] = (),
                  options: Dict[str, Callable] = frozenset(),
                  option_aliases: Dict[str, str] = frozenset(),
                  flag_aliases: Dict[str, str] = frozenset(),
-                 checks: List[Callable] = ()):
+                 checks: Tuple[Callable] = ()):
         if isclass(func):
             self.subs = {k: (Action(v) if not isinstance(v, Action) else v)
                          for k, v in vars(func).items() if not k.startswith("__")}
@@ -57,7 +57,7 @@ class Action:
         List: identity
     }
 
-    def can_run(self, ctx: List[Any] = ()):
+    def can_run(self, ctx: Tuple[Any] = ()):
         for check in self.checks:
             ctxs = get_ctxs(check, ctx)
             if check(**ctxs):
@@ -65,7 +65,7 @@ class Action:
             else:
                 raise CheckFailed(f"Check {check.__name__} Failed")
 
-    async def async_can_run(self, ctx: List[Any] = ()):
+    async def async_can_run(self, ctx: Tuple[Any] = ()):
         for check in self.checks:
             ctxs = get_ctxs(check, ctx)
             if iscoroutinefunction(check) and await check(**ctxs):
@@ -117,7 +117,7 @@ class Action:
 
         return out
 
-    async def async_invoke(self, args: List[str] = (), ctxs: List[Any] = ()):
+    async def async_invoke(self, args: Tuple[str] = (), ctxs: Tuple[Any] = ()):
         if len(args) >= 1:
             sub = self.subs.get(args[0])
             if sub:
@@ -133,7 +133,7 @@ class Action:
             elif self.performer:
                 await self.performer.async_run_fail(e, ctxs)
 
-    def invoke(self, args: List[str] = (), ctxs: List[Any] = ()):
+    def invoke(self, args: Tuple[str] = (), ctxs: Tuple[Any] = ()):
         if len(args) >= 1:
             sub = self.subs.get(args[0])
             if sub:
@@ -143,7 +143,7 @@ class Action:
                                                        sub.flag_aliases)
                 flags = Flags(flags)
                 options = Options(options)
-                return sub.invoke(args[1:], ctxs + [flags, options])
+                return sub.invoke(args[1:], ctxs + (flags, options))
         try:
             self.can_run(ctxs)
             ctx = get_ctxs(self.func, ctxs)
@@ -157,15 +157,17 @@ class Action:
 
     def child(self, *args, **kwargs):
         def wraps(func_class):
-            name = kwargs.get("name", func_class.__name__)
-            if name in self.subs.keys():
-                raise AlreadyAActionWithThatName(name, self.name)
-            sub = self.__class__(func_class, kwargs.get("aliases", []), name=name, **kwargs)
-            self.subs[name] = sub
+            kwargs["name"] = kwargs.get("name", func_class.__name__)
+            if kwargs["name"] in self.subs.keys():
+                raise AlreadyAActionWithThatName(kwargs["name"], self.name)
+            sub = self.__class__(func_class, *args, **kwargs)
+            self.subs[kwargs["name"]] = sub
             return sub
 
         if len(args) > 0 and callable(args[0]):
-            return wraps(args[0])
+            command = args[0]
+            args = args[1:]
+            return wraps(command)
         return wraps
 
     @property
@@ -178,14 +180,14 @@ class Action:
     def error(self, func):
         self.error_handler = func
 
-    async def async_run_fail(self, e, ctx: List[Any] = ()):
+    async def async_run_fail(self, e, ctx: Tuple[Any] = ()):
         ctxs = get_ctxs(self.error_handler, ctx)
         if iscoroutinefunction(self.error_handler):
             await self.error_handler(e, **ctxs)
         else:
             self.error_handler(e, **ctxs)
 
-    async def run_fail(self, e, ctx: List[Any] = ()):
+    async def run_fail(self, e, ctx: Tuple[Any] = ()):
         ctxs = get_ctxs(self.error_handler, ctx)
         self.error_handler(e, **ctxs)
 

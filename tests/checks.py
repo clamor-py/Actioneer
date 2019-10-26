@@ -1,7 +1,7 @@
 import actioneer
 
 
-handler = actioneer.Performer(["bruh"])
+handler = actioneer.Performer(("bruh",))
 
 
 def test(a, b, *, message: str):

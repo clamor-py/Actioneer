@@ -1,5 +1,5 @@
 from inspect import signature, Parameter
-from typing import List, Any, Union, _GenericAlias
+from typing import Tuple, Any, Union, _GenericAlias
 
 
 def identity(value):
@@ -22,7 +22,7 @@ def bool_from_str(inp):
         raise Exception("TODO")  # TODO
 
 
-def get_ctxs(func, ctx: List[Any] = []):
+def get_ctxs(func, ctx: Tuple[Any] = []):
     out = {}
     try:
         name_annots = {name: v.annotation for name, v in

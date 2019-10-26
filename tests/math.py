@@ -14,7 +14,7 @@ def add(a: int, b: int):
     print(a + b)
 
 
-math.subcommand(add, aliases=["a"])
+math.child(add, aliases=["a"])
 
 handler.register(math)
 handler.run("math add 1 5")
