@@ -1,4 +1,4 @@
-"""TODO: Description here"""
+"""Actioneer is a multi-purpose command handler that can be used on its own or embedded in other projects."""
 
 
 from .action import *

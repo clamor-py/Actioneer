@@ -1,6 +1,6 @@
 from inspect import signature, Parameter
 from typing import Tuple, Any, Union, _GenericAlias
-
+from .errors import ConvertingError
 
 def identity(value):
     return value
@@ -19,7 +19,7 @@ def bool_from_str(inp):
     elif inp in true_strings:
         return True
     else:
-        raise Exception("TODO")  # TODO
+        raise ConvertingError("failed to convert from {} with {!r}".format(inp, bool))
 
 
 def get_ctxs(func, ctx: Tuple[Any] = []):
