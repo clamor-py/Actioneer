@@ -2,7 +2,7 @@ from typing import Callable, Any, List, Dict, Union, Tuple
 from inspect import Parameter, signature, iscoroutinefunction, isclass
 from .utils import identity, bool_from_str, get_ctxs, Flags, Options
 from .argument import Argument
-from .errors import AlreadyAActionWithThatName, CheckFailed
+from .errors import AlreadyAActionWithThatName, CheckFailed, RequiredArgumentMissing, ConvertingError
 from copy import copy
 
 
@@ -81,39 +81,45 @@ class Action:
     def make_cast(self, args, ctx):
         out = []
         for arg, cast in zip(args, self.casts):
-            if getattr(cast, "__origin__", "") is Union:
-                for union_cast in cast.__args__:
-                    try:
-                        
-                        out.append(union_cast(arg, **get_ctxs(union_cast, ctx)))
-                        break
-                    except ValueError:
-                        continue
-            out.append(cast(arg))
+            try:
+                if getattr(cast, "__origin__", "") is Union:
+                    for union_cast in cast.__args__:
+                        try:
+
+                            out.append(union_cast(arg, **get_ctxs(union_cast, ctx)))
+                            break
+                        except ValueError:
+                            continue
+                out.append(cast(arg))
+            except:
+                raise ConvertingError("failed to convert from {} with {!r}".format(arg, cast))
 
         return out
 
     async def async_make_cast(self, args, ctx):
         out = []
         for arg, cast in zip(args, self.casts + ([self.casts[-1]]*(len(args) - len(self.casts)))):
-            if getattr(cast, "__origin__", "") is Union:
-                for union_cast in cast.__args__:
-                    try:
-                        if iscoroutinefunction(union_cast):
-                            out.append(await union_cast(arg, **get_ctxs(union_cast, ctx)))
-                            break
-                        else:
-                            out.append(union_cast(arg, **get_ctxs(union_cast, ctx)))
-                            break
-                    except ValueError:
-                        continue
-                continue
-            elif hasattr(cast, "__origin__"):
-                out.append(arg)
-            elif iscoroutinefunction(cast):
-                out.append(await cast(arg, **get_ctxs(cast, ctx)))
-            else:
-                out.append(cast(arg, **get_ctxs(cast, ctx)))
+            try:
+                if getattr(cast, "__origin__", "") is Union:
+                    for union_cast in cast.__args__:
+                        try:
+                            if iscoroutinefunction(union_cast):
+                                out.append(await union_cast(arg, **get_ctxs(union_cast, ctx)))
+                                break
+                            else:
+                                out.append(union_cast(arg, **get_ctxs(union_cast, ctx)))
+                                break
+                        except ValueError:
+                            continue
+                    continue
+                elif hasattr(cast, "__origin__"):
+                    out.append(arg)
+                elif iscoroutinefunction(cast):
+                    out.append(await cast(arg, **get_ctxs(cast, ctx)))
+                else:
+                    out.append(cast(arg, **get_ctxs(cast, ctx)))
+            except:
+                raise ConvertingError("failed to convert from {} with {!r}".format(arg, cast))
 
         return out
 
@@ -121,8 +127,16 @@ class Action:
         if len(args) >= 1:
             sub = self.subs.get(args[0])
             if sub:
+                options, args = self.performer.get_options(args, sub.options,
+                                                           sub.option_aliases)
+                flags, args = self.performer.get_flags(args, sub.flags,
+                                                       sub.flag_aliases)
+                flags = Flags(flags)
+                options = Options(options)
                 return await sub.async_invoke(args[1:], ctxs)
         try:
+            if len(args) != self.parameters:
+                raise RequiredArgumentMissing()
             await self.async_can_run(ctxs)
             ctx = get_ctxs(self.func, ctxs)
             args = await self.async_make_cast(args, ctxs)
@@ -145,6 +159,8 @@ class Action:
                 options = Options(options)
                 return sub.invoke(args[1:], ctxs + (flags, options))
         try:
+            if len(args) != self.parameters:
+                raise RequiredArgumentMissing()
             self.can_run(ctxs)
             ctx = get_ctxs(self.func, ctxs)
             args = self.make_cast(args, ctxs)

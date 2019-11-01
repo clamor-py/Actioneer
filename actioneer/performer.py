@@ -1,5 +1,5 @@
 from typing import List, Any, Dict, Callable, Tuple
-from .errors import NoClosingQuote
+from .errors import NoClosingQuote, NoActionFound
 from .utils import get_ctxs, Flags, Options
 from .action import Action
 import re
@@ -27,9 +27,10 @@ class Performer:
         return cmd
 
     def run(self, args, ctx: Tuple[Any] = ()):
-        cmd = self.lookup.get(args.split(" ")[0])
-        if cmd:
-            try:
+        cmd_name = args.split(" ")[0]
+        cmd = self.lookup.get(cmd_name)
+        try:
+            if cmd:
                 args = self.split_args(args)
                 options, args = self.get_options(args, cmd.options,
                                                  cmd.option_aliases)
@@ -44,17 +45,18 @@ class Performer:
                 else:
                     return cmd.invoke(args[1:], ctx + self.ctx +
                                       (flags, options))
-            except Exception as e:
-                if self.loop:
-                    if cmd.error_handler:
-                        self.loop.create_task(cmd.async_run_fail(e, ctx))
-                    else:
-                        self.loop.create_task(self.async_run_fail(e, ctx))
+            raise NoActionFound("No Action called {} found".format(cmd_name))
+        except Exception as e:
+            if self.loop:
+                if cmd and cmd.error_handler:
+                    self.loop.create_task(cmd.async_run_fail(e, ctx))
                 else:
-                    if cmd.error_handler:
-                        cmd.run_fail(e, ctx)
-                    else:
-                        self.run_fail(e, ctx)
+                    self.loop.create_task(self.async_run_fail(e, ctx))
+            else:
+                if cmd and cmd.error_handler:
+                    cmd.run_fail(e, ctx)
+                else:
+                    self.run_fail(e, ctx)
 
     def error(self, func):
         self.fail = func
