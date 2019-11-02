@@ -135,7 +135,7 @@ class Action:
                 options = Options(options)
                 return await sub.async_invoke(args[1:], ctxs)
         try:
-            if len(args) != self.parameters:
+            if not len(args) >= len(list(filter(lambda a: not a.default, self.parameters))):
                 raise RequiredArgumentMissing()
             await self.async_can_run(ctxs)
             ctx = get_ctxs(self.func, ctxs)
@@ -188,10 +188,11 @@ class Action:
 
     @property
     def parameters(self):
-        return [Argument(param.name, param.annotation)
+        return [Argument(param.name, param.annotation, param.kind, param.default)
                 for param in signature(self.func).parameters.values()
                 if param.kind in [Parameter.POSITIONAL_OR_KEYWORD,
-                                  Parameter.VAR_POSITIONAL]][1:]
+                                  Parameter.VAR_POSITIONAL]]
+
 
     def error(self, func):
         self.error_handler = func
