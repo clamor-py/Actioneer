@@ -10,6 +10,8 @@ from inspect import isawaitable
 quoteRe = re.compile(r"[\"']")
 chunk = re.compile(r"\S+")
 
+class SourceStr(str):
+    pass
 
 class Performer:
     def __init__(self, ctx: Tuple[Any, ...] = (), *, loop=None):
@@ -40,11 +42,11 @@ class Performer:
                 options = Options(options)
                 if self.loop:
                     coro = cmd.async_invoke(args[1:], ctx + self.ctx +
-                                            (flags, options))
+                                            (flags, options, SourceStr(args[args.index(" ") +1:])))
                     return self.loop.create_task(coro)
                 else:
                     return cmd.invoke(args[1:], ctx + self.ctx +
-                                      (flags, options))
+                                      (flags, options, SourceStr(args[args.index(" ") +1:])))
             raise NoActionFound("No Action called {} found".format(cmd_name))
         except Exception as e:
             if self.loop:
