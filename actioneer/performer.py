@@ -30,7 +30,7 @@ class Performer:
             self.lookup[alias] = cmd
         return cmd
 
-    def run(self, args, ctx: Tuple[Any] = ()):
+    async def run(self, args, ctx: Tuple[Any] = ()):
         cmd_name = args.split(" ")[0]
         cmd = self.lookup.get(cmd_name)
         try:
@@ -42,42 +42,22 @@ class Performer:
                                              cmd.flag_aliases)
                 flags = Flags(flags)
                 options = Options(options)
-                if self.loop:
-                    coro = cmd.async_invoke(split_args[1:], ctx + self.ctx +
-                                            (flags, options, SourceStr(args[args.index(" ")+1:])))
-                    return self.loop.create_task(coro)
-                else:
-                    return cmd.invoke(split_args[1:], ctx + self.ctx +
-                                      (flags, options, SourceStr(args[args.index(" ")+1:])))
+                source = SourceStr(args[len(cmd_name):].lstrip())
+                return await cmd.invoke(split_args[1:], ctx + self.ctx +
+                                    (flags, options, source))
             raise NoActionFound("No Action called {} found".format(cmd_name))
         except Exception as e:
-            if self.loop:
-                if cmd and cmd.error_handler:
-                    self.loop.create_task(cmd.async_run_fail(e, ctx))
-                else:
-                    self.loop.create_task(self.async_run_fail(e, ctx))
+            if cmd and cmd.error_handler:
+                return await cmd.run_fail(e, ctx)
             else:
-                if cmd and cmd.error_handler:
-                    cmd.run_fail(e, ctx)
-                else:
-                    self.run_fail(e, ctx)
+                return await self.run_fail(e, ctx)
 
     def error(self, func):
         self.fail = func
 
-    def fail(self, e):
+
+    async def run_fail(self, e, ctx: List[Any] = ()):
         traceback.print_exception(type(e), e, e.__traceback__)
-
-    def run_fail(self, e, ctx: Tuple[Any] = ()):
-        ctxs = get_ctxs(self.fail, ctx)
-        self.fail(e, **ctxs)
-
-    async def async_run_fail(self, e, ctx: List[Any] = ()):
-        ctxs = get_ctxs(self.fail, ctx)
-        if isawaitable(self.fail):
-            await self.fail(e, **ctxs)
-        else:
-            self.fail(e, **ctxs)
 
     def split_args(self, s: str) -> List[str]:
         """Will split the raw input into the arguments"""
