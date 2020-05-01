@@ -1,4 +1,5 @@
 # Actioneer
+DEPRICATED - use https://github.com/zomatree/Actioneer
 
 Actioneer is a multi-purpose command handler that can be used on its own or embedded in other projects ([Clamor](https://github.com/clamor-py/) for example)
 
